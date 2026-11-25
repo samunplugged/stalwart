@@ -979,6 +979,7 @@ impl EventType {
             b"limit.blob-quota" => EventType::Limit(LimitEvent::BlobQuota),
             b"limit.too-many-requests" => EventType::Limit(LimitEvent::TooManyRequests),
             b"limit.memory-budget" => EventType::Limit(LimitEvent::MemoryBudget),
+            b"store.quota-transfer" => EventType::Store(StoreEvent::QuotaTransfer),
             b"mail-auth.parse-error" => EventType::MailAuth(MailAuthEvent::ParseError),
             b"mail-auth.missing-parameters" => EventType::MailAuth(MailAuthEvent::MissingParameters),
             b"mail-auth.no-headers-found" => EventType::MailAuth(MailAuthEvent::NoHeadersFound),
@@ -1719,6 +1720,7 @@ impl EventType {
             // SPDX-SnippetEnd
             EventType::Limit(LimitEvent::TooManyRequests) => "limit.too-many-requests",
             EventType::Limit(LimitEvent::MemoryBudget) => "limit.memory-budget",
+            EventType::Store(StoreEvent::QuotaTransfer) => "store.quota-transfer",
             EventType::MailAuth(MailAuthEvent::ParseError) => "mail-auth.parse-error",
             EventType::MailAuth(MailAuthEvent::MissingParameters) => "mail-auth.missing-parameters",
             EventType::MailAuth(MailAuthEvent::NoHeadersFound) => "mail-auth.no-headers-found",
@@ -2540,6 +2542,7 @@ impl EventType {
             // SPDX-SnippetEnd
             EventType::Limit(LimitEvent::TooManyRequests) => 229,
             EventType::Limit(LimitEvent::MemoryBudget) => 627,
+            EventType::Store(StoreEvent::QuotaTransfer) => 673,
             EventType::MailAuth(MailAuthEvent::ParseError) => 238,
             EventType::MailAuth(MailAuthEvent::MissingParameters) => 236,
             EventType::MailAuth(MailAuthEvent::NoHeadersFound) => 237,
@@ -3283,6 +3286,7 @@ impl EventType {
             // SPDX-SnippetEnd
             229 => Some(EventType::Limit(LimitEvent::TooManyRequests)),
             627 => Some(EventType::Limit(LimitEvent::MemoryBudget)),
+            673 => Some(EventType::Store(StoreEvent::QuotaTransfer)),
             238 => Some(EventType::MailAuth(MailAuthEvent::ParseError)),
             236 => Some(EventType::MailAuth(MailAuthEvent::MissingParameters)),
             237 => Some(EventType::MailAuth(MailAuthEvent::NoHeadersFound)),
@@ -4103,6 +4107,7 @@ impl EventType {
             EventType::Limit(LimitEvent::ConcurrentConnection) => Level::Warn,
             EventType::Limit(LimitEvent::TooManyRequests) => Level::Warn,
             EventType::Limit(LimitEvent::MemoryBudget) => Level::Warn,
+            EventType::Store(StoreEvent::QuotaTransfer) => Level::Info,
             EventType::Milter(MilterEvent::IoError) => Level::Warn,
             EventType::Milter(MilterEvent::FrameTooLarge) => Level::Warn,
             EventType::Milter(MilterEvent::FrameInvalid) => Level::Warn,
@@ -4516,6 +4521,7 @@ impl EventType {
             // SPDX-SnippetEnd
             EventType::Limit(LimitEvent::TooManyRequests) => "Too many requests",
             EventType::Limit(LimitEvent::MemoryBudget) => "Memory budget exceeded",
+            EventType::Store(StoreEvent::QuotaTransfer) => "Organization quota transferred",
             EventType::MailAuth(MailAuthEvent::ParseError) => "Mail authentication parse error",
             EventType::MailAuth(MailAuthEvent::MissingParameters) => {
                 "Missing mail authentication parameters"
@@ -6986,6 +6992,7 @@ impl EventType {
             // SPDX-SnippetEnd
             EventType::Limit(LimitEvent::TooManyRequests),
             EventType::Limit(LimitEvent::MemoryBudget),
+            EventType::Store(StoreEvent::QuotaTransfer),
             EventType::MailAuth(MailAuthEvent::ParseError),
             EventType::MailAuth(MailAuthEvent::MissingParameters),
             EventType::MailAuth(MailAuthEvent::NoHeadersFound),

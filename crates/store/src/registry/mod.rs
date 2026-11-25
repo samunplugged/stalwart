@@ -5,6 +5,8 @@
  */
 
 pub mod bootstrap;
+// Sameer's fork: conditional multi-object updates (see FORK.md)
+pub mod conditional;
 pub mod get;
 pub mod local;
 pub mod query;

@@ -3108,6 +3108,9 @@ pub struct Email {
     pub max_header_size: u64,
     #[serde(rename = "maxHeaderCount")]
     pub max_header_count: u64,
+    // Sameer's fork: organization quota (see FORK.md)
+    #[serde(rename = "organizationQuotaDomain")]
+    pub organization_quota_domain: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -2885,6 +2885,7 @@ impl EnumImpl for Property {
             b"zone" => Property::Zone,
             b"zoneIpV4" => Property::ZoneIpV4,
             b"zoneIpV6" => Property::ZoneIpV6,
+            b"organizationQuotaDomain" => Property::OrganizationQuotaDomain,
         }
         .copied()
     }
@@ -4318,6 +4319,7 @@ impl EnumImpl for Property {
             Property::Zone => "zone",
             Property::ZoneIpV4 => "zoneIpV4",
             Property::ZoneIpV6 => "zoneIpV6",
+            Property::OrganizationQuotaDomain => "organizationQuotaDomain",
         }
     }
 
@@ -5754,11 +5756,12 @@ impl EnumImpl for Property {
             501 => Some(Property::Zone),
             112 => Some(Property::ZoneIpV4),
             113 => Some(Property::ZoneIpV6),
+            1133 => Some(Property::OrganizationQuotaDomain),
             _ => None,
         }
     }
 
-    const COUNT: usize = 1133;
+    const COUNT: usize = 1134;
 }
 
 impl serde::Serialize for Property {

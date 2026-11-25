@@ -1799,4 +1799,6 @@ pub enum Property {
     Zone = 501,
     ZoneIpV4 = 112,
     ZoneIpV6 = 113,
+    // Sameer's fork: organization quota (see FORK.md)
+    OrganizationQuotaDomain = 1133,
 }

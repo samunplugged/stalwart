@@ -35048,7 +35048,10 @@ impl Pickle for Email {
         if self.blob_encryption_key.is_some() {
             bitmap |= 1 << 8;
         }
-        let block = crate::pickle::begin_block(out, 20, 9, bitmap);
+        if self.organization_quota_domain.is_some() {
+            bitmap |= 1 << 9;
+        }
+        let block = crate::pickle::begin_block(out, 21, 10, bitmap);
         self.max_attachment_size.pickle(out);
         self.max_message_size.pickle(out);
         self.max_mailbox_depth.pickle(out);
@@ -35079,6 +35082,9 @@ impl Pickle for Email {
         self.max_header_size.pickle(out);
         self.max_header_count.pickle(out);
         if let Some(value) = &self.blob_encryption_key {
+            value.pickle(out);
+        }
+        if let Some(value) = &self.organization_quota_domain {
             value.pickle(out);
         }
         crate::pickle::end_block(out, block);
@@ -35207,6 +35213,15 @@ impl Pickle for Email {
         } else {
             Default::default()
         };
+        let field20: Option<String> = if block.has(20) {
+            if block.flag(9) {
+                Some(Pickle::unpickle(stream)?)
+            } else {
+                None
+            }
+        } else {
+            Default::default()
+        };
         stream.close_block(block);
         Some(Self {
             max_attachment_size: field0,
@@ -35227,6 +35242,7 @@ impl Pickle for Email {
             max_header_size: field17,
             max_header_count: field18,
             blob_encryption_key: field19,
+            organization_quota_domain: field20,
         })
     }
 }
@@ -35252,6 +35268,7 @@ impl Default for Email {
             max_flag_length: 128u64,
             max_header_size: 524288u64,
             max_header_count: 5000u64,
+            organization_quota_domain: Default::default(),
         }
     }
 }
@@ -35335,6 +35352,10 @@ impl IntoValue for Email {
             Property::MaxHeaderCount,
             self.max_header_count.into_value_with(opts),
         );
+        map.insert_unchecked(
+            Property::OrganizationQuotaDomain,
+            self.organization_quota_domain.into_value_with(opts),
+        );
         JmapValue::Object(map)
     }
 }
@@ -35376,6 +35397,9 @@ impl RegistryJsonPropertyPatch for Email {
             Some(Property::MaxFlagLength) => self.max_flag_length.patch(pointer, value),
             Some(Property::MaxHeaderSize) => self.max_header_size.patch(pointer, value),
             Some(Property::MaxHeaderCount) => self.max_header_count.patch(pointer, value),
+            Some(Property::OrganizationQuotaDomain) => self
+                .organization_quota_domain
+                .patch(pointer.with_validators(&[StringValidator::Trim]), value),
             Some(Property::Type) => Ok(MaybeUnpatched::Unpatched {
                 property: Property::Type,
                 value,

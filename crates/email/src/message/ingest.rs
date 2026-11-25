@@ -288,6 +288,13 @@ impl EmailIngest for Server {
         // SPDX-SnippetEnd
         let mut raw_message_len = params.raw_message.len() as u64;
         let account = self.account(account_id).await.caused_by(trc::location!())?;
+        // Sameer's fork: mail ingestion checks the disk quota only inside the
+        // write transaction, so check it first for organization members and
+        // move quota to the account when needed (see FORK.md)
+        let account = self
+            .prepare_organization_quota(account, raw_message_len)
+            .await
+            .caused_by(trc::location!())?;
         let limits = &self.core.email.limits;
         if matches!(
             params.source,

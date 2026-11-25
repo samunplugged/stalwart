@@ -66,6 +66,10 @@ pub struct EmailConfig {
 
     pub max_objects: ObjectQuota,
 
+    // Sameer's fork: domain whose groups are organization groups, whose
+    // members' disk quotas are moved between them (see FORK.md).
+    pub organization_quota_domain: Option<String>,
+
     pub account_purge_frequency: SimpleCron,
     pub data_purge_frequency: SimpleCron,
     pub blob_purge_frequency: SimpleCron,
@@ -353,6 +357,11 @@ impl EmailConfig {
                 max_rtf_depth: search.max_extract_rtf_depth as usize,
             },
             max_objects,
+            organization_quota_domain: email
+                .organization_quota_domain
+                .as_deref()
+                .map(|domain| domain.trim().to_ascii_lowercase())
+                .filter(|domain| !domain.is_empty()),
             default_folders,
             shared_folder,
             account_purge_frequency: dr.expunge_schedule.into(),

@@ -6,7 +6,7 @@
 
 // This file is auto-generated. Do not edit directly.
 
-pub const TOTAL_EVENT_COUNT: usize = 673;
+pub const TOTAL_EVENT_COUNT: usize = 674;
 pub const TOTAL_METRIC_COUNT: usize = 399;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -924,6 +924,8 @@ pub enum StoreEvent {
     BlobStorePurged = 353,
     BlobStoreRecoded = 669,
     DataStorePurged = 352,
+    // Sameer's fork: organization quota (see FORK.md)
+    QuotaTransfer = 673,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
