@@ -93,6 +93,8 @@ impl BlobStore {
             #[cfg(feature = "enterprise")]
             BlobStore::Sharded(store) => store.get_blob(key, 0..usize::MAX).await,
             // SPDX-SnippetEnd
+            // Sameer's fork: mirrored blob store
+            BlobStore::Mirrored(store) => store.get_blob(key).await,
         }
     }
 
@@ -112,6 +114,11 @@ impl BlobStore {
                 .replace_blob(key, &data)
                 .await
                 .caused_by(trc::location!()),
+            // Sameer's fork: mirrored blob store
+            BlobStore::Mirrored(store) => store
+                .replace_blob(key, data)
+                .await
+                .caused_by(trc::location!()),
             store => store.write_blob(key, Ok(data)).await,
         }
     }
@@ -129,7 +136,11 @@ impl BlobStore {
         }
     }
 
-    async fn write_blob(&self, key: &[u8], data: trc::Result<Vec<u8>>) -> trc::Result<()> {
+    pub(crate) async fn write_blob(
+        &self,
+        key: &[u8],
+        data: trc::Result<Vec<u8>>,
+    ) -> trc::Result<()> {
         let data = data?;
         #[cfg(stalwart_tests)]
         {
@@ -171,6 +182,8 @@ impl BlobStore {
             #[cfg(feature = "enterprise")]
             BlobStore::Sharded(store) => store.put_blob(key, data).await,
             // SPDX-SnippetEnd
+            // Sameer's fork: mirrored blob store
+            BlobStore::Mirrored(store) => store.put_blob(key, data).await,
         }
         .caused_by(trc::location!());
 
@@ -221,6 +234,8 @@ impl BlobStore {
             #[cfg(feature = "enterprise")]
             BlobStore::Sharded(store) => store.delete_blob(key).await,
             // SPDX-SnippetEnd
+            // Sameer's fork: mirrored blob store
+            BlobStore::Mirrored(store) => store.delete_blob(key).await,
         }
         .caused_by(trc::location!());
 

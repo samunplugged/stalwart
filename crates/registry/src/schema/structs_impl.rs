@@ -7756,6 +7756,7 @@ impl ObjectImpl for BlobStore {
             BlobStore::FoundationDb(inner) => inner.validate(errors),
             BlobStore::PostgreSql(inner) => inner.validate(errors),
             BlobStore::MySql(inner) => inner.validate(errors),
+            BlobStore::Mirrored(inner) => inner.validate(errors),
         }
     }
 
@@ -7825,6 +7826,10 @@ impl Pickle for BlobStore {
                 7u16.pickle(out);
                 inner.pickle(out);
             }
+            BlobStore::Mirrored(inner) => {
+                8u16.pickle(out);
+                inner.pickle(out);
+            }
         }
     }
 
@@ -7846,6 +7851,7 @@ impl Pickle for BlobStore {
             5 => Pickle::unpickle(stream).map(BlobStore::FoundationDb),
             6 => Pickle::unpickle(stream).map(BlobStore::PostgreSql),
             7 => Pickle::unpickle(stream).map(BlobStore::MySql),
+            8 => Pickle::unpickle(stream).map(BlobStore::Mirrored),
             _ => None,
         }
     }
@@ -7917,6 +7923,13 @@ impl IntoValue for BlobStore {
                     .insert_unchecked(Property::Type, JmapValue::Str("MySql".into()));
                 obj
             }
+            BlobStore::Mirrored(obj) => {
+                let mut obj = obj.into_value_with(opts);
+                obj.as_object_mut()
+                    .unwrap()
+                    .insert_unchecked(Property::Type, JmapValue::Str("Mirrored".into()));
+                obj
+            }
         }
     }
 }
@@ -7942,6 +7955,7 @@ impl RegistryJsonPatch for BlobStore {
                 BlobStoreType::FoundationDb => *self = BlobStore::FoundationDb(Default::default()),
                 BlobStoreType::PostgreSql => *self = BlobStore::PostgreSql(Default::default()),
                 BlobStoreType::MySql => *self = BlobStore::MySql(Default::default()),
+                BlobStoreType::Mirrored => *self = BlobStore::Mirrored(Default::default()),
             }
         }
         match self {
@@ -7958,6 +7972,7 @@ impl RegistryJsonPatch for BlobStore {
             BlobStore::FoundationDb(inner) => inner.patch(pointer, value),
             BlobStore::PostgreSql(inner) => inner.patch(pointer, value),
             BlobStore::MySql(inner) => inner.patch(pointer, value),
+            BlobStore::Mirrored(inner) => inner.patch(pointer, value),
         }
     }
 }
@@ -7978,6 +7993,7 @@ impl BlobStore {
             BlobStore::FoundationDb(_) => BlobStoreType::FoundationDb,
             BlobStore::PostgreSql(_) => BlobStoreType::PostgreSql,
             BlobStore::MySql(_) => BlobStoreType::MySql,
+            BlobStore::Mirrored(_) => BlobStoreType::Mirrored,
         }
     }
 }

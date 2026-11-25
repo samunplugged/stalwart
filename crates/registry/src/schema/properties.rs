@@ -1801,4 +1801,12 @@ pub enum Property {
     ZoneIpV6 = 113,
     // Sameer's fork: organization quota (see FORK.md)
     OrganizationQuotaDomain = 1133,
+    // Sameer's fork: mirrored blob store (see FORK.md)
+    Primary = 1134,
+    Secondary = 1135,
+    ReadTimeout = 1136,
+    WriteTimeout = 1137,
+    RepairInterval = 1138,
+    FailureThreshold = 1139,
+    DownDuration = 1140,
 }

@@ -402,6 +402,8 @@ pub enum BlobStore {
     #[cfg(feature = "enterprise")]
     Sharded(Arc<backend::composite::sharded_blob::ShardedBlob>),
     // SPDX-SnippetEnd
+    // Sameer's fork: mirrored blob store (see FORK.md)
+    Mirrored(Arc<backend::mirror::MirroredBlob>),
 }
 
 #[derive(Clone)]

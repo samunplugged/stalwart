@@ -7,6 +7,8 @@
 // This file is auto-generated. Do not edit directly.
 
 use crate::schema::prelude::*;
+// Sameer's fork: mirrored blob store settings (see FORK.md)
+pub use crate::schema::mirrored::MirroredBlobStore;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "@type")]
 pub enum Account {
@@ -718,6 +720,8 @@ pub enum BlobStore {
     FoundationDb(FoundationDbStore),
     PostgreSql(PostgreSqlStore),
     MySql(MySqlStore),
+    // Sameer's fork: mirrored blob store (see FORK.md)
+    Mirrored(MirroredBlobStore),
 }
 
 // SPDX-SnippetBegin

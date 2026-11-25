@@ -17,6 +17,8 @@ use trc::TOTAL_EVENT_COUNT;
 #[allow(clippy::derivable_impls)]
 pub mod enums;
 pub mod enums_impl;
+// Sameer's fork: mirrored blob store settings (see FORK.md)
+pub mod mirrored;
 pub mod prelude;
 #[allow(clippy::large_enum_variant)]
 pub mod properties;

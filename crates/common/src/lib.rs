@@ -165,6 +165,8 @@ pub const KV_RATE_LIMIT_AVAILABILITY: u8 = 12;
 pub const KV_GREYLIST: u8 = 13;
 pub const KV_LOCK_QUEUE_MESSAGE: u8 = 14;
 pub const KV_LOCK_TASK: u8 = 15;
+// Sameer's fork: mirrored blob store repair lease (see FORK.md)
+pub const KV_LOCK_BLOB_MIRROR: u8 = 87;
 pub const KV_LOCK_DAV: u8 = 16;
 pub const KV_LOCK_SEARCH_INDEX: u8 = 17;
 pub const KV_OAUTH_CIMD: u8 = 18;
