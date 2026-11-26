@@ -7756,6 +7756,7 @@ impl ObjectImpl for BlobStore {
             BlobStore::FoundationDb(inner) => inner.validate(errors),
             BlobStore::PostgreSql(inner) => inner.validate(errors),
             BlobStore::MySql(inner) => inner.validate(errors),
+            BlobStore::Mirrored(inner) => inner.validate(errors),
         }
     }
 
@@ -7825,6 +7826,10 @@ impl Pickle for BlobStore {
                 7u16.pickle(out);
                 inner.pickle(out);
             }
+            BlobStore::Mirrored(inner) => {
+                8u16.pickle(out);
+                inner.pickle(out);
+            }
         }
     }
 
@@ -7846,6 +7851,7 @@ impl Pickle for BlobStore {
             5 => Pickle::unpickle(stream).map(BlobStore::FoundationDb),
             6 => Pickle::unpickle(stream).map(BlobStore::PostgreSql),
             7 => Pickle::unpickle(stream).map(BlobStore::MySql),
+            8 => Pickle::unpickle(stream).map(BlobStore::Mirrored),
             _ => None,
         }
     }
@@ -7917,6 +7923,13 @@ impl IntoValue for BlobStore {
                     .insert_unchecked(Property::Type, JmapValue::Str("MySql".into()));
                 obj
             }
+            BlobStore::Mirrored(obj) => {
+                let mut obj = obj.into_value_with(opts);
+                obj.as_object_mut()
+                    .unwrap()
+                    .insert_unchecked(Property::Type, JmapValue::Str("Mirrored".into()));
+                obj
+            }
         }
     }
 }
@@ -7942,6 +7955,7 @@ impl RegistryJsonPatch for BlobStore {
                 BlobStoreType::FoundationDb => *self = BlobStore::FoundationDb(Default::default()),
                 BlobStoreType::PostgreSql => *self = BlobStore::PostgreSql(Default::default()),
                 BlobStoreType::MySql => *self = BlobStore::MySql(Default::default()),
+                BlobStoreType::Mirrored => *self = BlobStore::Mirrored(Default::default()),
             }
         }
         match self {
@@ -7958,6 +7972,7 @@ impl RegistryJsonPatch for BlobStore {
             BlobStore::FoundationDb(inner) => inner.patch(pointer, value),
             BlobStore::PostgreSql(inner) => inner.patch(pointer, value),
             BlobStore::MySql(inner) => inner.patch(pointer, value),
+            BlobStore::Mirrored(inner) => inner.patch(pointer, value),
         }
     }
 }
@@ -7978,6 +7993,7 @@ impl BlobStore {
             BlobStore::FoundationDb(_) => BlobStoreType::FoundationDb,
             BlobStore::PostgreSql(_) => BlobStoreType::PostgreSql,
             BlobStore::MySql(_) => BlobStoreType::MySql,
+            BlobStore::Mirrored(_) => BlobStoreType::Mirrored,
         }
     }
 }
@@ -35048,7 +35064,10 @@ impl Pickle for Email {
         if self.blob_encryption_key.is_some() {
             bitmap |= 1 << 8;
         }
-        let block = crate::pickle::begin_block(out, 20, 9, bitmap);
+        if self.organization_quota_domain.is_some() {
+            bitmap |= 1 << 9;
+        }
+        let block = crate::pickle::begin_block(out, 21, 10, bitmap);
         self.max_attachment_size.pickle(out);
         self.max_message_size.pickle(out);
         self.max_mailbox_depth.pickle(out);
@@ -35079,6 +35098,9 @@ impl Pickle for Email {
         self.max_header_size.pickle(out);
         self.max_header_count.pickle(out);
         if let Some(value) = &self.blob_encryption_key {
+            value.pickle(out);
+        }
+        if let Some(value) = &self.organization_quota_domain {
             value.pickle(out);
         }
         crate::pickle::end_block(out, block);
@@ -35207,6 +35229,15 @@ impl Pickle for Email {
         } else {
             Default::default()
         };
+        let field20: Option<String> = if block.has(20) {
+            if block.flag(9) {
+                Some(Pickle::unpickle(stream)?)
+            } else {
+                None
+            }
+        } else {
+            Default::default()
+        };
         stream.close_block(block);
         Some(Self {
             max_attachment_size: field0,
@@ -35227,6 +35258,7 @@ impl Pickle for Email {
             max_header_size: field17,
             max_header_count: field18,
             blob_encryption_key: field19,
+            organization_quota_domain: field20,
         })
     }
 }
@@ -35252,6 +35284,7 @@ impl Default for Email {
             max_flag_length: 128u64,
             max_header_size: 524288u64,
             max_header_count: 5000u64,
+            organization_quota_domain: Default::default(),
         }
     }
 }
@@ -35335,6 +35368,10 @@ impl IntoValue for Email {
             Property::MaxHeaderCount,
             self.max_header_count.into_value_with(opts),
         );
+        map.insert_unchecked(
+            Property::OrganizationQuotaDomain,
+            self.organization_quota_domain.into_value_with(opts),
+        );
         JmapValue::Object(map)
     }
 }
@@ -35376,6 +35413,9 @@ impl RegistryJsonPropertyPatch for Email {
             Some(Property::MaxFlagLength) => self.max_flag_length.patch(pointer, value),
             Some(Property::MaxHeaderSize) => self.max_header_size.patch(pointer, value),
             Some(Property::MaxHeaderCount) => self.max_header_count.patch(pointer, value),
+            Some(Property::OrganizationQuotaDomain) => self
+                .organization_quota_domain
+                .patch(pointer.with_validators(&[StringValidator::Trim]), value),
             Some(Property::Type) => Ok(MaybeUnpatched::Unpatched {
                 property: Property::Type,
                 value,
@@ -57414,7 +57454,11 @@ impl Pickle for PostgreSqlStore {
         if self.response_timeout.is_some() {
             bitmap |= 1 << 6;
         }
-        let block = crate::pickle::begin_block(out, 13, 7, bitmap);
+        // Sameer's fork: account fence
+        if self.account_fence {
+            bitmap |= 1 << 7;
+        }
+        let block = crate::pickle::begin_block(out, 14, 8, bitmap);
         if let Some(value) = &self.connect_timeout {
             value.pickle(out);
         }
@@ -57538,6 +57582,8 @@ impl Pickle for PostgreSqlStore {
         } else {
             Some(Duration::from_millis(120000))
         };
+        // Sameer's fork: account fence
+        let field13: bool = if block.has(13) { block.flag(7) } else { false };
         stream.close_block(block);
         Some(Self {
             connect_timeout: field0,
@@ -57558,6 +57604,7 @@ impl Pickle for PostgreSqlStore {
             auth_secret: field10,
             options: field11,
             response_timeout: field12,
+            account_fence: field13,
         })
     }
 }
@@ -57583,6 +57630,7 @@ impl Default for PostgreSqlStore {
             auth_username: Some("stalwart".to_string()),
             auth_secret: Default::default(),
             options: Default::default(),
+            account_fence: false,
         }
     }
 }
@@ -57633,6 +57681,11 @@ impl IntoValue for PostgreSqlStore {
         );
         map.insert_unchecked(Property::AuthSecret, self.auth_secret.into_value_with(opts));
         map.insert_unchecked(Property::Options, self.options.into_value_with(opts));
+        // Sameer's fork: account fence
+        map.insert_unchecked(
+            Property::AccountFence,
+            self.account_fence.into_value_with(opts),
+        );
         JmapValue::Object(map)
     }
 }
@@ -57670,6 +57723,8 @@ impl RegistryJsonPropertyPatch for PostgreSqlStore {
             Some(Property::Options) => self
                 .options
                 .patch(pointer.with_validators(&[StringValidator::Trim]), value),
+            // Sameer's fork: account fence
+            Some(Property::AccountFence) => self.account_fence.patch(pointer, value),
             Some(Property::Type) => Ok(MaybeUnpatched::Unpatched {
                 property: Property::Type,
                 value,

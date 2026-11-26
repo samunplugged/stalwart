@@ -1215,6 +1215,7 @@ impl EnumImpl for BlobStoreType {
             b"FoundationDb" => BlobStoreType::FoundationDb,
             b"PostgreSql" => BlobStoreType::PostgreSql,
             b"MySql" => BlobStoreType::MySql,
+            b"Mirrored" => BlobStoreType::Mirrored,
         }
         .copied()
     }
@@ -1234,6 +1235,7 @@ impl EnumImpl for BlobStoreType {
             BlobStoreType::FoundationDb => "FoundationDb",
             BlobStoreType::PostgreSql => "PostgreSql",
             BlobStoreType::MySql => "MySql",
+            BlobStoreType::Mirrored => "Mirrored",
         }
     }
 
@@ -1256,11 +1258,12 @@ impl EnumImpl for BlobStoreType {
             5 => Some(BlobStoreType::FoundationDb),
             6 => Some(BlobStoreType::PostgreSql),
             7 => Some(BlobStoreType::MySql),
+            8 => Some(BlobStoreType::Mirrored),
             _ => None,
         }
     }
 
-    const COUNT: usize = 8;
+    const COUNT: usize = 9;
 }
 
 impl serde::Serialize for BlobStoreType {

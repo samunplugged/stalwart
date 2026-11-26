@@ -31,6 +31,8 @@ mod iterate_tests;
 pub mod local;
 pub mod meili;
 pub mod memory;
+// Sameer's fork: mirrored blob store (see FORK.md)
+pub mod mirror;
 #[cfg(feature = "mysql")]
 pub mod mysql;
 #[cfg(feature = "postgres")]

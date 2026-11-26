@@ -15,7 +15,7 @@ use super::{PostgresStore, into_error, is_timeout_error};
 use crate::{
     Key, Shape, Subspace, WITH_SUBSPACE,
     backend::postgres::{
-        DELETE_CHUNK_SIZE, MIN_DELETE_CHUNK_SIZE, into_pool_error, pool::PgObject, sql::SubspaceSql,
+        DELETE_CHUNK_SIZE, MIN_DELETE_CHUNK_SIZE, pool::PgObject, sql::SubspaceSql,
     },
     write::{
         Advance, AssignedIds, Batch, BatchCursor, ChunkedRetry, LogSet, MAX_COMMIT_ATTEMPTS,
@@ -60,10 +60,7 @@ impl PostgresStore {
 
         loop {
             assigned_ids.rollback(mark);
-            let mut trx = Transaction::new(
-                self.conn_pool.get().await.map_err(into_pool_error)?,
-                &self.sql,
-            );
+            let mut trx = Transaction::new(self.conn().await?, &self.sql);
             let result = write_pipelined(&mut trx, &mut batch, assigned_ids, new_key_asserts).await;
             let poisoned = trx.previous_rollback_failed();
             if result.is_err() && !poisoned {
@@ -112,7 +109,7 @@ impl PostgresStore {
     }
 
     pub(crate) async fn purge_store(&self) -> trc::Result<()> {
-        let conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let conn = self.conn().await?;
 
         for subspace in Subspace::ALL
             .iter()
@@ -126,7 +123,7 @@ impl PostgresStore {
     }
 
     pub(crate) async fn delete_range(&self, from: impl Key, to: impl Key) -> trc::Result<()> {
-        let conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let conn = self.conn().await?;
         let stmts = self.sql.get(from.subspace());
         let mut from = from.serialize(0);
         let to = to.serialize(0);

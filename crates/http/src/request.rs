@@ -1020,7 +1020,8 @@ async fn handle_session<T: SessionStream>(inner: Arc<Inner>, session: SessionDat
                 let instance = session.instance.clone();
                 let inner = inner.clone();
 
-                async move {
+                // Sameer's fork: account fence. Each request has a scope of its own, which authentication fills.
+                store::fence::slot(async move {
                     let server = inner.build_server();
                     let has_body = !req.body().is_end_stream();
 
@@ -1173,7 +1174,7 @@ async fn handle_session<T: SessionStream>(inner: Arc<Inner>, session: SessionDat
                     }
 
                     Ok::<_, hyper::Error>(response)
-                }
+                })
             }),
         )
         .with_upgrades()

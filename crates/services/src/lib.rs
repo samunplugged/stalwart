@@ -16,6 +16,8 @@ use common::{
 use state_manager::manager::spawn_push_router;
 use std::sync::Arc;
 
+// Sameer's fork: mirrored blob store repair (see FORK.md)
+pub mod blob_mirror;
 pub mod broadcast;
 pub mod index_queue;
 pub mod state_manager;
@@ -62,6 +64,9 @@ impl SpawnServices for IpcReceivers {
 
             // Spawn search index queue manager
             spawn_index_queue_manager(inner.clone());
+
+            // Sameer's fork: spawn the mirrored blob store repair
+            blob_mirror::spawn_blob_mirror_repair(inner.clone());
 
             // Spawn task scheduler
             spawn_task_scheduler(inner);

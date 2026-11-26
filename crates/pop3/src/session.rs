@@ -26,7 +26,8 @@ impl SessionManager for Pop3SessionManager {
         self,
         session: SessionData<T>,
     ) -> impl std::future::Future<Output = ()> + Send {
-        async move {
+        // Sameer's fork: account fence. The connection has a scope of its own, which authentication fills.
+        store::fence::slot(async move {
             let mut session = Session {
                 server: self.inner.build_server(),
                 instance: session.instance,
@@ -52,7 +53,7 @@ impl SessionManager for Pop3SessionManager {
             {
                 session.handle_conn().await;
             }
-        }
+        })
     }
 
     #[allow(clippy::manual_async_fn)]

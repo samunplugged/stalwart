@@ -9,9 +9,7 @@ use crate::{
     Deserialize, Fetch, IterateParams, Key, Subspace, ValueKey,
     backend::{
         ValueColumn,
-        postgres::{
-            ITERATE_CHUNK_SIZE, MIN_ITERATE_CHUNK_SIZE, into_pool_error, pooled::PooledConn,
-        },
+        postgres::{ITERATE_CHUNK_SIZE, MIN_ITERATE_CHUNK_SIZE, pooled::PooledConn},
         range_batch::{Bounds, RangeAttempt, RangeCursor, Timeout},
     },
     dispatch::store::point_keys,
@@ -34,7 +32,7 @@ impl PostgresStore {
     where
         U: Deserialize + 'static,
     {
-        let conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let conn = self.conn().await?;
         let s = conn
             .prepare_cached(&self.sql.get(key.subspace()).get_value)
             .await
@@ -55,7 +53,7 @@ impl PostgresStore {
     }
 
     pub(crate) async fn key_exists(&self, key: impl Key) -> trc::Result<bool> {
-        let conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let conn = self.conn().await?;
         let s = conn
             .prepare_cached(&self.sql.get(key.subspace()).key_exists)
             .await
@@ -75,7 +73,7 @@ impl PostgresStore {
         mut cb: impl for<'x> FnMut(&'x [u8], &'x [u8]) -> trc::Result<bool> + Sync + Send,
     ) -> trc::Result<()> {
         debug_assert_ne!(params.fetch, Fetch::Limit(0));
-        let conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let conn = self.conn().await?;
         let subspace = params.begin.subspace();
         let stmts = self.sql.get(subspace);
         let column = ValueColumn::new(params.values, subspace);
@@ -209,7 +207,7 @@ impl PostgresStore {
         };
         let subspace = first.begin.subspace();
         let column = ValueColumn::new(first.values, subspace);
-        let mut conn = PooledConn::new(self.conn_pool.get().await.map_err(into_pool_error)?);
+        let mut conn = PooledConn::new(self.conn().await?);
 
         match point_keys(&ranges) {
             Some(keys) => {
@@ -235,7 +233,7 @@ impl PostgresStore {
         let subspace = key.subspace();
         let key = key.serialize(0);
 
-        let conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let conn = self.conn().await?;
         let s = conn
             .prepare_cached(&self.sql.get(subspace).get_value)
             .await

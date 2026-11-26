@@ -56,7 +56,13 @@ impl Server {
         if account.quota_disk != 0 {
             let used_quota = self.get_used_quota_account(account.id).await?.max(0) as u64;
 
-            if used_quota + item_size > account.quota_disk {
+            // Sameer's fork: before failing, try moving unused quota from
+            // another member of the account's organization (see FORK.md)
+            if used_quota + item_size > account.quota_disk
+                && !self
+                    .transfer_organization_quota(account.id, item_size)
+                    .await?
+            {
                 return Err(trc::LimitEvent::Quota
                     .into_err()
                     .ctx(trc::Key::Limit, account.quota_disk)

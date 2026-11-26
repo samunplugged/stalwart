@@ -7,6 +7,8 @@
 // This file is auto-generated. Do not edit directly.
 
 use crate::schema::prelude::*;
+// Sameer's fork: mirrored blob store settings (see FORK.md)
+pub use crate::schema::mirrored::MirroredBlobStore;
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(tag = "@type")]
 pub enum Account {
@@ -718,6 +720,8 @@ pub enum BlobStore {
     FoundationDb(FoundationDbStore),
     PostgreSql(PostgreSqlStore),
     MySql(MySqlStore),
+    // Sameer's fork: mirrored blob store (see FORK.md)
+    Mirrored(MirroredBlobStore),
 }
 
 // SPDX-SnippetBegin
@@ -3108,6 +3112,9 @@ pub struct Email {
     pub max_header_size: u64,
     #[serde(rename = "maxHeaderCount")]
     pub max_header_count: u64,
+    // Sameer's fork: organization quota (see FORK.md)
+    #[serde(rename = "organizationQuotaDomain")]
+    pub organization_quota_domain: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -5085,6 +5092,9 @@ pub struct PostgreSqlStore {
     #[serde(rename = "authSecret")]
     pub auth_secret: SecretKeyOptional,
     pub options: Option<String>,
+    // Sameer's fork: account fence (see FORK.md)
+    #[serde(rename = "accountFence")]
+    pub account_fence: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

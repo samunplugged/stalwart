@@ -34,6 +34,8 @@ pub mod document;
 pub mod encryption;
 pub mod index;
 pub mod metadata;
+// Sameer's fork: organization quota transfer (see FORK.md)
+pub mod org_quota;
 pub mod quota;
 pub mod search;
 pub mod state;

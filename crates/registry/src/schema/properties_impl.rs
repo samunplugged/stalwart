@@ -2885,6 +2885,15 @@ impl EnumImpl for Property {
             b"zone" => Property::Zone,
             b"zoneIpV4" => Property::ZoneIpV4,
             b"zoneIpV6" => Property::ZoneIpV6,
+            b"organizationQuotaDomain" => Property::OrganizationQuotaDomain,
+            b"primary" => Property::Primary,
+            b"secondary" => Property::Secondary,
+            b"readTimeout" => Property::ReadTimeout,
+            b"writeTimeout" => Property::WriteTimeout,
+            b"repairInterval" => Property::RepairInterval,
+            b"failureThreshold" => Property::FailureThreshold,
+            b"downDuration" => Property::DownDuration,
+            b"accountFence" => Property::AccountFence,
         }
         .copied()
     }
@@ -4318,6 +4327,15 @@ impl EnumImpl for Property {
             Property::Zone => "zone",
             Property::ZoneIpV4 => "zoneIpV4",
             Property::ZoneIpV6 => "zoneIpV6",
+            Property::OrganizationQuotaDomain => "organizationQuotaDomain",
+            Property::Primary => "primary",
+            Property::Secondary => "secondary",
+            Property::ReadTimeout => "readTimeout",
+            Property::WriteTimeout => "writeTimeout",
+            Property::RepairInterval => "repairInterval",
+            Property::FailureThreshold => "failureThreshold",
+            Property::DownDuration => "downDuration",
+            Property::AccountFence => "accountFence",
         }
     }
 
@@ -5754,11 +5772,20 @@ impl EnumImpl for Property {
             501 => Some(Property::Zone),
             112 => Some(Property::ZoneIpV4),
             113 => Some(Property::ZoneIpV6),
+            1133 => Some(Property::OrganizationQuotaDomain),
+            1134 => Some(Property::Primary),
+            1135 => Some(Property::Secondary),
+            1136 => Some(Property::ReadTimeout),
+            1137 => Some(Property::WriteTimeout),
+            1138 => Some(Property::RepairInterval),
+            1139 => Some(Property::FailureThreshold),
+            1140 => Some(Property::DownDuration),
+            1141 => Some(Property::AccountFence),
             _ => None,
         }
     }
 
-    const COUNT: usize = 1133;
+    const COUNT: usize = 1142;
 }
 
 impl serde::Serialize for Property {

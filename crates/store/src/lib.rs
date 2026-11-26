@@ -9,6 +9,8 @@
 pub mod backend;
 pub mod build;
 pub mod dispatch;
+// Sameer's fork: account fence (see FORK.md)
+pub mod fence;
 pub mod query;
 pub mod registry;
 pub mod search;
@@ -402,6 +404,8 @@ pub enum BlobStore {
     #[cfg(feature = "enterprise")]
     Sharded(Arc<backend::composite::sharded_blob::ShardedBlob>),
     // SPDX-SnippetEnd
+    // Sameer's fork: mirrored blob store (see FORK.md)
+    Mirrored(Arc<backend::mirror::MirroredBlob>),
 }
 
 #[derive(Clone)]

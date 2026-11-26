@@ -5,13 +5,29 @@
  */
 
 use crate::{BlobStore, backend::fs::FsStore, registry::bootstrap::Bootstrap};
-use registry::schema::{prelude::ObjectType, structs};
+use registry::{
+    schema::{prelude::ObjectType, structs},
+    types::EnumImpl,
+};
 
 #[allow(unreachable_patterns)]
 impl BlobStore {
     pub async fn build(bp: &mut Bootstrap) -> Option<Self> {
-        let result = match bp.setting_infallible::<structs::BlobStore>().await {
-            structs::BlobStore::Default => return Some(BlobStore::Store(bp.data_store.clone())),
+        let config = bp.setting_infallible::<structs::BlobStore>().await;
+        match Self::build_from(bp, config).await {
+            Ok(store) => Some(store),
+            Err(err) => {
+                bp.build_error(ObjectType::BlobStore.singleton(), err);
+                None
+            }
+        }
+    }
+
+    // Sameer's fork: split out of `build` so that the mirrored blob store
+    // can build its two sides (see FORK.md)
+    async fn build_from(bp: &mut Bootstrap, config: structs::BlobStore) -> Result<Self, String> {
+        match config {
+            structs::BlobStore::Default => Ok(BlobStore::Store(bp.data_store.clone())),
             #[cfg(feature = "foundation")]
             structs::BlobStore::FoundationDb(foundation_db_store) => {
                 crate::backend::foundationdb::FdbStore::open_shared(
@@ -50,15 +66,33 @@ impl BlobStore {
             structs::BlobStore::Sharded(store) => {
                 crate::backend::composite::sharded_blob::ShardedBlob::open(store, bp).await
             } // SPDX-SnippetEnd
-            _ => Err("Binary was not compiled with the selected blob store backend".to_string()),
-        };
-
-        match result {
-            Ok(store) => Some(store),
-            Err(err) => {
-                bp.build_error(ObjectType::BlobStore.singleton(), err);
-                None
+            // Sameer's fork: mirrored blob store
+            structs::BlobStore::Mirrored(mut store) => {
+                for side in [&store.primary, &store.secondary] {
+                    if !structs::MirroredBlobStore::is_valid_side(side) {
+                        return Err(format!(
+                            "A mirrored blob store side cannot be of type {}",
+                            side.object_type().as_str()
+                        ));
+                    }
+                }
+                let primary = std::mem::take(store.primary.as_mut());
+                let secondary = std::mem::take(store.secondary.as_mut());
+                let primary = Box::pin(Self::build_from(bp, primary))
+                    .await
+                    .map_err(|err| format!("Mirrored blob store primary: {err}"))?;
+                let secondary = Box::pin(Self::build_from(bp, secondary))
+                    .await
+                    .map_err(|err| format!("Mirrored blob store secondary: {err}"))?;
+                crate::backend::mirror::MirroredBlob::open(
+                    store,
+                    primary,
+                    secondary,
+                    bp.data_store.clone(),
+                )
+                .await
             }
+            _ => Err("Binary was not compiled with the selected blob store backend".to_string()),
         }
     }
 

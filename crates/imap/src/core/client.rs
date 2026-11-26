@@ -595,11 +595,12 @@ impl<T: SessionStream> State<T> {
     {
         let data = self.session_data();
 
-        tokio::spawn(async move {
+        // Sameer's fork: account fence. A task spawned from the session runs in its scope.
+        tokio::spawn(store::fence::inherit(async move {
             if let Err(err) = fnc(params, &data).await {
                 let _ = data.write_error(err).await;
             }
-        });
+        }));
 
         Ok(())
     }

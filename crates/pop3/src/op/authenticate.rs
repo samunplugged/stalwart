@@ -159,6 +159,9 @@ impl<T: SessionStream> Session<T> {
             LimiterResult::Disabled => None,
         };
 
+        // Sameer's fork: account fence
+        access_token.enter_fence();
+
         // Fetch mailbox
         let mailbox = self.fetch_mailbox(access_token.account_id()).await?;
 

@@ -30,7 +30,8 @@ impl SessionManager for ImapSessionManager {
         self,
         session: SessionData<T>,
     ) -> impl std::future::Future<Output = ()> + Send {
-        async move {
+        // Sameer's fork: account fence. The connection has a scope of its own, which authentication fills.
+        store::fence::slot(async move {
             if let Ok(mut session) = Session::new(session, self).await
                 && session.handle_conn().await
                 && session.instance.acceptor.is_tls()
@@ -38,7 +39,7 @@ impl SessionManager for ImapSessionManager {
             {
                 session.handle_conn().await;
             }
-        }
+        })
     }
 
     #[allow(clippy::manual_async_fn)]

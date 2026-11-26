@@ -7,7 +7,7 @@
 use crate::{
     backend::postgres::{
         DELETE_CHUNK_SIZE, MIN_DELETE_CHUNK_SIZE, PostgresStore, PsqlSearchField, into_error,
-        into_pool_error, is_timeout_error,
+        is_timeout_error,
     },
     search::{
         IndexDocument, KeyValueMatch, SearchField, SearchFilter, SearchQuery, SearchResults,
@@ -84,7 +84,7 @@ impl PostgresStore {
             }
             is_duplicate
         });
-        let conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let conn = self.conn().await?;
 
         for documents in documents.chunk_by(|a, b| a.index == b.index) {
             let Some(index) = documents.first().map(|document| document.index) else {
@@ -232,7 +232,7 @@ impl PostgresStore {
         params: &[FilterParam<'_>],
         form: TsQueryForm,
     ) -> trc::Result<R> {
-        let mut conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let mut conn = self.conn().await?;
         let typed = params.iter().map(|param| (param, param.sql_type()));
         let (results, num_rows) = match form {
             TsQueryForm::Inline | TsQueryForm::InitPlan => {
@@ -274,7 +274,7 @@ impl PostgresStore {
         let table = filter.index.psql_table();
         let mut where_clause = String::new();
         let params = self.build_filter(&mut where_clause, &filter.filters, TsQueryForm::Inline);
-        let conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        let conn = self.conn().await?;
         let s = conn
             .prepare_cached(&format!("DELETE FROM {table}{where_clause}"))
             .await

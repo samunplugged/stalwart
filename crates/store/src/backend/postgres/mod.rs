@@ -22,6 +22,8 @@ use self::sql::SqlStatements;
 
 pub mod blob;
 pub(crate) mod connect;
+// Sameer's fork: account fence (see FORK.md)
+pub(crate) mod fence;
 pub mod lookup;
 pub mod main;
 pub mod pool;
@@ -86,6 +88,24 @@ fn into_pool_error(err: deadpool::managed::PoolError<trc::Error>) -> trc::Error 
 impl PostgresStore {
     pub fn is_responsive(&self) -> bool {
         !self.conn_pool.manager().is_unresponsive()
+    }
+
+    // Sameer's fork: account fence (see FORK.md). Checks out a connection in the current task's scope: with
+    // the fence on, a connection whose scope differs is given this one first, and fails closed (it has none) if that
+    // doesn't succeed.
+    pub(crate) async fn conn(&self) -> trc::Result<pool::PgObject> {
+        let mut conn = self.conn_pool.get().await.map_err(into_pool_error)?;
+        if self.sql.account_fence {
+            let scope = crate::fence::current();
+            if conn.scope.as_ref() != Some(&scope) {
+                conn.scope = None;
+                conn.batch_execute(&scope.postgres_statement())
+                    .await
+                    .map_err(into_error)?;
+                conn.scope = Some(scope);
+            }
+        }
+        Ok(conn)
     }
 }
 

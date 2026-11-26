@@ -242,6 +242,8 @@ pub enum BlobStoreType {
     FoundationDb = 5,
     PostgreSql = 6,
     MySql = 7,
+    // Sameer's fork: mirrored blob store (see FORK.md)
+    Mirrored = 8,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]

@@ -22,11 +22,17 @@ pub type PgObject = managed::Object<PgManager>;
 pub struct PgManager {
     manager: Manager,
     connect: PgConnect,
+    // Sameer's fork: account fence. Whether recycling resets session settings (RecyclingMethod::Clean runs
+    // RESET ALL), which takes a connection's scope off it.
+    resets_settings: bool,
 }
 
 pub struct PgConn {
     client: ClientWrapper,
     rollback: Option<Pin<Box<SimpleQueryStream>>>,
+    // Sameer's fork: account fence. The scope last put on this connection; None when it has none, so the next
+    // checkout sets one.
+    pub(crate) scope: Option<crate::fence::Scope>,
 }
 
 pub(crate) enum RollbackOutcome {
@@ -36,8 +42,12 @@ pub(crate) enum RollbackOutcome {
 }
 
 impl PgManager {
-    pub(crate) fn new(manager: Manager, connect: PgConnect) -> Self {
-        PgManager { manager, connect }
+    pub(crate) fn new(manager: Manager, connect: PgConnect, resets_settings: bool) -> Self {
+        PgManager {
+            manager,
+            connect,
+            resets_settings,
+        }
     }
 
     pub(crate) fn is_unresponsive(&self) -> bool {
@@ -54,6 +64,7 @@ impl managed::Manager for PgManager {
         Ok(PgConn {
             client: ClientWrapper::new(client, connection),
             rollback: None,
+            scope: None,
         })
     }
 
@@ -66,6 +77,10 @@ impl managed::Manager for PgManager {
                 RecycleError::Message(message) => RecycleError::Message(message),
                 RecycleError::Backend(err) => RecycleError::Backend(into_error(err)),
             })?;
+        // Sameer's fork: account fence
+        if self.resets_settings {
+            conn.scope = None;
+        }
         conn.check_deferred_rollback()
     }
 
