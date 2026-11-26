@@ -1809,4 +1809,6 @@ pub enum Property {
     RepairInterval = 1138,
     FailureThreshold = 1139,
     DownDuration = 1140,
+    // Sameer's fork: account fence (see FORK.md)
+    AccountFence = 1141,
 }

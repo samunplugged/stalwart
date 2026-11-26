@@ -2893,6 +2893,7 @@ impl EnumImpl for Property {
             b"repairInterval" => Property::RepairInterval,
             b"failureThreshold" => Property::FailureThreshold,
             b"downDuration" => Property::DownDuration,
+            b"accountFence" => Property::AccountFence,
         }
         .copied()
     }
@@ -4334,6 +4335,7 @@ impl EnumImpl for Property {
             Property::RepairInterval => "repairInterval",
             Property::FailureThreshold => "failureThreshold",
             Property::DownDuration => "downDuration",
+            Property::AccountFence => "accountFence",
         }
     }
 
@@ -5778,11 +5780,12 @@ impl EnumImpl for Property {
             1138 => Some(Property::RepairInterval),
             1139 => Some(Property::FailureThreshold),
             1140 => Some(Property::DownDuration),
+            1141 => Some(Property::AccountFence),
             _ => None,
         }
     }
 
-    const COUNT: usize = 1141;
+    const COUNT: usize = 1142;
 }
 
 impl serde::Serialize for Property {

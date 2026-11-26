@@ -81,7 +81,8 @@ impl WebSocketUpgrade for Server {
         // Spawn WebSocket connection
         let jmap = self.clone();
         let max_size = self.core.jmap.request_max_size;
-        tokio::spawn(async move {
+        // Sameer's fork: account fence. The socket runs in the scope of the request that opened it.
+        tokio::spawn(store::fence::inherit(async move {
             // Upgrade connection
             let session_id = session.session_id;
             match hyper::upgrade::on(req).await {
@@ -112,7 +113,7 @@ impl WebSocketUpgrade for Server {
                     );
                 }
             }
-        });
+        }));
 
         Ok(HttpResponse::new(StatusCode::SWITCHING_PROTOCOLS).with_websocket_upgrade(derived_key))
     }

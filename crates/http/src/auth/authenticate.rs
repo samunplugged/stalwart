@@ -45,15 +45,30 @@ impl Authenticator for Server {
         req: &HttpRequest,
         session: &HttpSessionData,
     ) -> trc::Result<HttpAuthenticated> {
-        let revocations = &self.inner.cache.grant_revocations;
+        let result = authenticate_headers(self, req, session).await;
+        // Sameer's fork: account fence. The rest of the request runs in the signed-in token's scope.
+        if let Ok(authenticated) = &result {
+            authenticated.access_token.enter_fence();
+        }
+        result
+    }
+}
+
+async fn authenticate_headers(
+    server: &Server,
+    req: &HttpRequest,
+    session: &HttpSessionData,
+) -> trc::Result<HttpAuthenticated> {
+    {
+        let revocations = &server.inner.cache.grant_revocations;
         let epoch = revocations.epoch();
         if let Some((mechanism, token)) = req.authorization() {
             // Check if the credentials are cached
-            if let Some(http_cache) = self.inner.cache.http_auth.get(token) {
+            if let Some(http_cache) = server.inner.cache.http_auth.get(token) {
                 // Make sure the revision is still valid
-                if self.inner.cache.http_auth.is_live(&http_cache) {
+                if server.inner.cache.http_auth.is_live(&http_cache) {
                     let access_token = AccessToken::renew(
-                        self.access_token(http_cache.account_id).await?,
+                        server.access_token(http_cache.account_id).await?,
                         http_cache.credential_id,
                         http_cache.token_scope,
                         session.remote_ip,
@@ -61,7 +76,7 @@ impl Authenticator for Server {
 
                     if access_token.revision() == http_cache.revision {
                         // Enforce authenticated rate limit
-                        return self
+                        return server
                             .is_http_authenticated_request_allowed(&access_token, session.remote_ip)
                             .await
                             .map(|in_flight| HttpAuthenticated {
@@ -73,12 +88,12 @@ impl Authenticator for Server {
                 }
 
                 // If the revision is not valid, remove the cached credentials
-                self.inner.cache.http_auth.remove(token);
+                server.inner.cache.http_auth.remove(token);
             }
 
             let credentials = if mechanism.eq_ignore_ascii_case("basic") {
                 // Decode the base64 encoded credentials
-                let login = if is_exchange_enabled(&self.core) {
+                let login = if is_exchange_enabled(&server.core) {
                     BasicLogin::Exchange
                 } else {
                     BasicLogin::Strict
@@ -92,7 +107,8 @@ impl Authenticator for Server {
                 })?
             } else if mechanism.eq_ignore_ascii_case("bearer") {
                 // Enforce anonymous rate limit
-                self.is_http_anonymous_request_allowed(session.remote_ip)
+                server
+                    .is_http_anonymous_request_allowed(session.remote_ip)
                     .await?;
 
                 Credentials::Bearer {
@@ -101,7 +117,8 @@ impl Authenticator for Server {
                 }
             } else {
                 // Enforce anonymous rate limit
-                self.is_http_anonymous_request_allowed(session.remote_ip)
+                server
+                    .is_http_anonymous_request_allowed(session.remote_ip)
                     .await?;
 
                 return Err(trc::AuthEvent::Error
@@ -115,7 +132,7 @@ impl Authenticator for Server {
             let Authenticated {
                 access_token,
                 expires_in,
-            } = self
+            } = server
                 .authenticate(&AuthRequest::from_credentials(
                     credentials,
                     session.session_id,
@@ -124,15 +141,15 @@ impl Authenticator for Server {
                 .await?;
 
             // Cache credentials
-            let cache_ttl = expires_in.map_or(self.core.oauth.oauth_expiry_token, |expires_in| {
-                expires_in.min(self.core.oauth.oauth_expiry_token)
+            let cache_ttl = expires_in.map_or(server.core.oauth.oauth_expiry_token, |expires_in| {
+                expires_in.min(server.core.oauth.oauth_expiry_token)
             });
             revocations.insert(
-                &self.inner.cache.http_auth,
+                &server.inner.cache.http_auth,
                 token,
                 HttpAuthCache {
                     account_id: access_token.account_id(),
-                    expires: self.inner.cache.http_auth.expires_in(cache_ttl),
+                    expires: server.inner.cache.http_auth.expires_in(cache_ttl),
                     credential_id: access_token.credential_id(),
                     revision: access_token.revision(),
                     token_scope: access_token.token_scope(),
@@ -141,7 +158,8 @@ impl Authenticator for Server {
             );
 
             // Enforce authenticated rate limit
-            self.is_http_authenticated_request_allowed(&access_token, session.remote_ip)
+            server
+                .is_http_authenticated_request_allowed(&access_token, session.remote_ip)
                 .await
                 .map(|in_flight| HttpAuthenticated {
                     in_flight,
@@ -150,7 +168,8 @@ impl Authenticator for Server {
                 })
         } else {
             // Enforce anonymous rate limit
-            self.is_http_anonymous_request_allowed(session.remote_ip)
+            server
+                .is_http_anonymous_request_allowed(session.remote_ip)
                 .await?;
 
             Err(trc::AuthEvent::Failed

@@ -191,6 +191,9 @@ impl<T: SessionStream> Session<T> {
             LimiterResult::Disabled => None,
         };
 
+        // Sameer's fork: account fence
+        access_token.enter_fence();
+
         // Create session
         self.state = State::Authenticated {
             data: Arc::new(

@@ -9,6 +9,8 @@
 pub mod backend;
 pub mod build;
 pub mod dispatch;
+// Sameer's fork: account fence (see FORK.md)
+pub mod fence;
 pub mod query;
 pub mod registry;
 pub mod search;

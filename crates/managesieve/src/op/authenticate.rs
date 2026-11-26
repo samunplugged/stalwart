@@ -140,6 +140,9 @@ impl<T: SessionStream> Session<T> {
             LimiterResult::Disabled => None,
         };
 
+        // Sameer's fork: account fence
+        access_token.enter_fence();
+
         // Create session
         self.state = State::Authenticated {
             access_token,
@@ -212,6 +215,8 @@ impl<T: SessionStream> Session<T> {
     }
 
     pub async fn handle_unauthenticate(&mut self) -> trc::Result<Vec<u8>> {
+        // Sameer's fork: account fence. Signed out, the session opens no account's rows.
+        store::fence::enter(store::fence::Scope::accounts([]));
         self.state = State::NotAuthenticated {
             auth_failures: 0,
             sasl_failure: None,

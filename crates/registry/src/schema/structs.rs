@@ -5092,6 +5092,9 @@ pub struct PostgreSqlStore {
     #[serde(rename = "authSecret")]
     pub auth_secret: SecretKeyOptional,
     pub options: Option<String>,
+    // Sameer's fork: account fence (see FORK.md)
+    #[serde(rename = "accountFence")]
+    pub account_fence: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

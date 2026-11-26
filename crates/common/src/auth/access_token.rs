@@ -613,6 +613,23 @@ impl AccessToken {
             .chain(self.inner.access_to.iter().map(|a| a.account_id))
     }
 
+    // Sameer's fork: account fence (see FORK.md)
+    /// The account fence's scope for a session signed in with this token: the accounts it may open (its own, its
+    /// groups' and those shared with it), or every row for an administrator who may act as anyone.
+    pub fn fence_scope(&self) -> store::fence::Scope {
+        if self.has_permission(Permission::Impersonate) {
+            store::fence::Scope::System
+        } else {
+            store::fence::Scope::accounts(self.all_ids())
+        }
+    }
+
+    // Sameer's fork: account fence (see FORK.md)
+    /// Puts the current task's fence slot in this token's scope.
+    pub fn enter_fence(&self) {
+        store::fence::enter(self.fence_scope());
+    }
+
     pub fn all_ids_by_collection(&self, collection: Collection) -> impl Iterator<Item = u32> {
         [self.inner.account_id]
             .into_iter()

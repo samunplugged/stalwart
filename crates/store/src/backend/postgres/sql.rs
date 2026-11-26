@@ -36,6 +36,9 @@ const POINT_KEYS: &str = "((SELECT $1::bytea[]))::bytea[]";
 
 pub(crate) struct SqlStatements {
     statements: Box<[SubspaceSql]>,
+    // Sameer's fork: account fence (see FORK.md). Here rather than on PostgresStore, which Enterprise code
+    // builds field by field, so every store sharing these statements shares the setting.
+    pub(crate) account_fence: bool,
 }
 
 impl SubspaceSql {
@@ -146,7 +149,14 @@ impl SqlStatements {
                 .copied()
                 .map(SubspaceSql::new)
                 .collect(),
+            account_fence: false,
         }
+    }
+
+    // Sameer's fork: account fence (see FORK.md)
+    pub(crate) fn with_account_fence(mut self, on: bool) -> Self {
+        self.account_fence = on;
+        self
     }
 
     #[inline(always)]

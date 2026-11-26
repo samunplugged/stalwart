@@ -62,7 +62,8 @@ impl PostgresStore {
             response_timeout,
         )?;
         let ts_configs = discover_ts_configs(&primary_pool).await;
-        let sql = Arc::new(SqlStatements::new());
+        // Sameer's fork: account fence (see FORK.md)
+        let sql = Arc::new(SqlStatements::new().with_account_fence(config.account_fence));
 
         // SPDX-SnippetBegin
         // SPDX-FileCopyrightText: 2020 Stalwart Labs LLC <hello@stalw.art>
@@ -138,6 +139,9 @@ impl PostgresStore {
             .map_err(into_error)?;
         }
 
+        // Sameer's fork: account fence (see FORK.md)
+        super::fence::apply(&conn, super::fence::STORAGE_TABLES, self.sql.account_fence).await?;
+
         Ok(())
     }
 
@@ -149,6 +153,9 @@ impl PostgresStore {
         create_search_tables::<ContactSearchField>(&conn).await?;
         create_search_tables::<FileSearchField>(&conn).await?;
         create_search_tables::<TracingSearchField>(&conn).await?;
+
+        // Sameer's fork: account fence (see FORK.md)
+        super::fence::apply(&conn, super::fence::SEARCH_TABLES, self.sql.account_fence).await?;
 
         Ok(())
     }
@@ -227,8 +234,11 @@ fn create_pool(
         response_timeout,
         unresponsive: Default::default(),
     };
-    let manager = Manager::from_config(pg_config, NoTls, cfg.get_manager_config());
-    PgPool::builder(PgManager::new(manager, connect))
+    let manager_config = cfg.get_manager_config();
+    // Sameer's fork: account fence. Clean recycling resets session settings, the scope among them.
+    let resets_settings = matches!(manager_config.recycling_method, RecyclingMethod::Clean);
+    let manager = Manager::from_config(pg_config, NoTls, manager_config);
+    PgPool::builder(PgManager::new(manager, connect, resets_settings))
         .config(cfg.get_pool_config())
         .runtime(Runtime::Tokio1)
         .build()

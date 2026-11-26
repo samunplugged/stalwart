@@ -57454,7 +57454,11 @@ impl Pickle for PostgreSqlStore {
         if self.response_timeout.is_some() {
             bitmap |= 1 << 6;
         }
-        let block = crate::pickle::begin_block(out, 13, 7, bitmap);
+        // Sameer's fork: account fence
+        if self.account_fence {
+            bitmap |= 1 << 7;
+        }
+        let block = crate::pickle::begin_block(out, 14, 8, bitmap);
         if let Some(value) = &self.connect_timeout {
             value.pickle(out);
         }
@@ -57578,6 +57582,8 @@ impl Pickle for PostgreSqlStore {
         } else {
             Some(Duration::from_millis(120000))
         };
+        // Sameer's fork: account fence
+        let field13: bool = if block.has(13) { block.flag(7) } else { false };
         stream.close_block(block);
         Some(Self {
             connect_timeout: field0,
@@ -57598,6 +57604,7 @@ impl Pickle for PostgreSqlStore {
             auth_secret: field10,
             options: field11,
             response_timeout: field12,
+            account_fence: field13,
         })
     }
 }
@@ -57623,6 +57630,7 @@ impl Default for PostgreSqlStore {
             auth_username: Some("stalwart".to_string()),
             auth_secret: Default::default(),
             options: Default::default(),
+            account_fence: false,
         }
     }
 }
@@ -57673,6 +57681,11 @@ impl IntoValue for PostgreSqlStore {
         );
         map.insert_unchecked(Property::AuthSecret, self.auth_secret.into_value_with(opts));
         map.insert_unchecked(Property::Options, self.options.into_value_with(opts));
+        // Sameer's fork: account fence
+        map.insert_unchecked(
+            Property::AccountFence,
+            self.account_fence.into_value_with(opts),
+        );
         JmapValue::Object(map)
     }
 }
@@ -57710,6 +57723,8 @@ impl RegistryJsonPropertyPatch for PostgreSqlStore {
             Some(Property::Options) => self
                 .options
                 .patch(pointer.with_validators(&[StringValidator::Trim]), value),
+            // Sameer's fork: account fence
+            Some(Property::AccountFence) => self.account_fence.patch(pointer, value),
             Some(Property::Type) => Ok(MaybeUnpatched::Unpatched {
                 property: Property::Type,
                 value,

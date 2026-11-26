@@ -80,7 +80,8 @@ macro_rules! spawn_op {
         {
 
         let permit = $permit;
-        let op = async move {
+        // Sameer's fork: account fence. A command spawned from the session runs in its scope.
+        let op = store::fence::inherit(async move {
             let data = &($data);
 
             if let Err(err) = (async {
@@ -90,7 +91,7 @@ macro_rules! spawn_op {
             {
                 let _ = data.write_error(err).await;
             }
-        };
+        });
 
         match permit {
             Some(permit) => {

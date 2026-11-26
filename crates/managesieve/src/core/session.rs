@@ -19,7 +19,8 @@ impl SessionManager for ManageSieveSessionManager {
         self,
         session: SessionData<T>,
     ) -> impl std::future::Future<Output = ()> + Send {
-        async move {
+        // Sameer's fork: account fence. The connection has a scope of its own, which authentication fills.
+        store::fence::slot(async move {
             // Create session
             let server = self.inner.build_server();
             let mut session = Session {
@@ -50,7 +51,7 @@ impl SessionManager for ManageSieveSessionManager {
                     .await;
                 session.handle_conn().await;
             }
-        }
+        })
     }
 
     #[allow(clippy::manual_async_fn)]
